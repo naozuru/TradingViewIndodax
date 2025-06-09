@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Monitor Harga Coin Indodax + Telegram</title>
+</head>
+<body>
+  <h1>📊 Harga Koin (ETH, XRT, ALPAKA)</h1>
+  <div id="eth"></div>
+  <div id="xrt"></div>
+  <div id="alpaka"></div>
+
+  <script>
+    const target = {
+      eth: { buy: 40000000, sell: 50000000 },
+      xrt: { buy: 8000, sell: 10000 },
+      alpaka: { buy: 600, sell: 1000 }
+    };
+
+    const telegramToken = "YOUR_TELEGRAM_BOT_TOKEN"; // <-- Ganti
+    const telegramChatId = "YOUR_CHAT_ID"; // <-- Ganti
+
+    async function getPrice(pair) {
+      const res = await fetch(`https://indodax.com/api/${pair}/ticker`);
+      const data = await res.json();
+      return parseInt(data.ticker.last);
+    }
+
+    async function checkPrice(coin, pair, elementId) {
+      const last = await getPrice(pair);
+      const { buy, sell } = target[coin];
+
+      let message = `${coin.toUpperCase()}/IDR: Rp${last.toLocaleString()}`;
+
+      if (last <= buy) {
+        message += " ✅ BELI SEKARANG!";
+        sendTelegram(`${coin.toUpperCase()} saatnya BELI di harga Rp${last.toLocaleString()}`);
+      } else if (last >= sell) {
+        message += " ❌ JUAL SEKARANG!";
+        sendTelegram(`${coin.toUpperCase()} saatnya JUAL di harga Rp${last.toLocaleString()}`);
+      }
+
+      document.getElementById(elementId).innerText = message;
+    }
+
+    async function sendTelegram(message) {
+      const url = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
+      const payload = {
+        chat_id: telegramChatId,
+        text: message
+      };
+
+      await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    async function run() {
+      await checkPrice('eth', 'ethidr', 'eth');
+      await checkPrice('xrt', 'xrtidr', 'xrt');
+      await checkPrice('alpaka', 'alpakaidr', 'alpaka');
+    }
+
+    run();
+    setInterval(run, 60000); // Cek setiap 60 detik
+  </script>
+</body>
+</html>
